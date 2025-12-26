@@ -615,7 +615,15 @@
                                             <div>
                                                 <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Date</label>
                                                 {/* CHANGED: Added 'block w-full min-w-0' to enforce width strictness */}
-                                                <input type="date" name="signDate" value={formData.signDate} onChange={handleChange} className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white focus:ring-2 focus:ring-green-500 outline-none text-lg" required />
+                                                <input
+  type="date"
+  name="signDate"
+  value={formData.signDate}
+  onChange={handleChange}
+  className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white focus:ring-2 focus:ring-green-500 outline-none text-lg leading-[3.5rem]"
+  required
+/>
+
                                             </div>
                                         </div>
                                     </div>
