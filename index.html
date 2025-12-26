@@ -122,9 +122,13 @@
             Check: (p) => <IconBase {...p} d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3" />,
             File: (p) => <IconBase {...p} d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6" />,
             Shield: (p) => <IconBase {...p} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
-            Camera: (p) => <IconBase {...p} d="M23 19a2 0 0 1-2 2H3a2 0 0 1-2-2V8a2 0 0 1 2-2h4l2-3h6l2 3h4a2 0 0 1 2 2z M12 13a4 0 1 0 0 8 4 0 0 0 0-8z" />,
-            Upload: (p) => <IconBase {...p} d="M21 15v4a2 0 0 1-2 2H5a2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />,
-            Briefcase: (p) => <IconBase {...p} d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z" />
+            // CHANGED: Updated Camera icon path to be more robust and visible
+            Camera: (p) => <IconBase {...p} d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /> ,
+            // CHANGED: Fixed malformed SVG path for Upload icon (fixed arc parameters)
+            Upload: (p) => <IconBase {...p} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />,
+            Briefcase: (p) => <IconBase {...p} d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z" />,
+            // CHANGED: Added ArrowLeft icon
+            ArrowLeft: (p) => <IconBase {...p} d="M19 12H5m7 7l-7-7 7-7" />
         };
 
         // --- LEGAL TEXT ---
@@ -591,33 +595,38 @@
                                         </div>
                                     </div>
                                     
-                                    <div className="bg-slate-800 text-white p-10 rounded-3xl shadow-2xl border border-slate-600">
+                                    {/* CHANGED: Updated padding to p-6 on mobile and p-10 on desktop to fix spacing issues */}
+                                    <div className="bg-slate-800 text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-600">
                                         <h4 className="font-bold text-white mb-4 uppercase tracking-widest text-xl flex items-center gap-3"><Icons.File className="w-6 h-6"/> Digital Signature</h4>
                                         <p className="text-sm text-slate-400 mb-8 font-medium">By typing your name below, you certify that all information is true and agree to the terms above.</p>
                                         <div className="grid md:grid-cols-2 gap-8">
                                             <div>
                                                 <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Applicant Signature</label>
-                                                {/* 2. CHANGED: Added h-16 to ensure consistent height */}
-                                                <input type="text" name="applicantSignature" value={formData.applicantSignature} onChange={handleChange} className="w-full p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:ring-2 focus:ring-green-500 outline-none text-lg font-serif italic" placeholder="Type Full Name" required />
+                                                {/* CHANGED: Added 'block w-full min-w-0' to enforce width strictness */}
+                                                <input type="text" name="applicantSignature" value={formData.applicantSignature} onChange={handleChange} className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:ring-2 focus:ring-green-500 outline-none text-lg font-serif italic" placeholder="Type Full Name" required />
                                             </div>
                                             {isUnder18 && (
                                                 <div>
                                                     <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Guardian Signature</label>
-                                                    {/* 2. CHANGED: Added h-16 to ensure consistent height */}
-                                                    <input type="text" name="guardianSignature" value={formData.guardianSignature} onChange={handleChange} className="w-full p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:ring-2 focus:ring-green-500 outline-none text-lg font-serif italic" placeholder="Type Full Name" required />
+                                                    {/* CHANGED: Added 'block w-full min-w-0' to enforce width strictness */}
+                                                    <input type="text" name="guardianSignature" value={formData.guardianSignature} onChange={handleChange} className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:ring-2 focus:ring-green-500 outline-none text-lg font-serif italic" placeholder="Type Full Name" required />
                                                 </div>
                                             )}
                                             <div>
                                                 <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Date</label>
-                                                {/* 2. CHANGED: Added h-16 to ensure consistent height */}
-                                                <input type="date" name="signDate" value={formData.signDate} onChange={handleChange} className="w-full p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white focus:ring-2 focus:ring-green-500 outline-none text-lg" required />
+                                                {/* CHANGED: Added 'block w-full min-w-0' to enforce width strictness */}
+                                                <input type="date" name="signDate" value={formData.signDate} onChange={handleChange} className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white focus:ring-2 focus:ring-green-500 outline-none text-lg" required />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col md:flex-row gap-4 justify-between mt-16 pt-8 border-t border-slate-200 pb-12">
-                                    <button onClick={() => setStep(0)} className="px-8 py-4 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors font-bold text-lg" disabled={isSubmitting}>Back to Start</button>
+                                    {/* CHANGED: Added ArrowLeft icon to button with flex layout */}
+                                    <button onClick={() => setStep(0)} className="px-8 py-4 text-slate-500 hover:bg-slate-100 rounded-xl transition-colors font-bold text-lg flex items-center gap-3" disabled={isSubmitting}>
+                                        <Icons.ArrowLeft className="w-6 h-6" />
+                                        Back to Start
+                                    </button>
                                     
                                     <button onClick={handleFinalSubmit} disabled={isSubmitting} className="btn-liquid px-16 py-5 rounded-2xl font-black text-white shadow-2xl text-2xl transform transition hover:-translate-y-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                         {isSubmitting ? status || "Processing..." : "SUBMIT APPLICATION"}
