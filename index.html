@@ -95,7 +95,8 @@
 
     <!-- 3. REACT APPLICATION -->
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        // CHANGED: Added useRef to imports for scroll handling
+        const { useState, useEffect, useRef } = React;
 
         // --- CONFIGURATION ---
         const CONFIG = {
@@ -128,7 +129,9 @@
             Upload: (p) => <IconBase {...p} d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />,
             Briefcase: (p) => <IconBase {...p} d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z" />,
             // CHANGED: Added ArrowLeft icon
-            ArrowLeft: (p) => <IconBase {...p} d="M19 12H5m7 7l-7-7 7-7" />
+            ArrowLeft: (p) => <IconBase {...p} d="M19 12H5m7 7l-7-7 7-7" />,
+            // CHANGED: Added ChevronDown icon for folding sections
+            ChevronDown: (p) => <IconBase {...p} d="M6 9l6 6 6-6" />
         };
 
         // --- LEGAL TEXT ---
@@ -149,6 +152,52 @@
                 <h3 className="text-xl font-bold text-slate-800 uppercase tracking-wide md:text-2xl">{title}</h3>
             </div>
         );
+
+        // CHANGED: Updated CollapsibleSection to use props for open state AND scroll to view on open
+        const CollapsibleSection = ({ title, icon: IconComp, children, description, isRequired, isOpen, onToggle }) => {
+            const sectionRef = useRef(null);
+
+            useEffect(() => {
+                if (isOpen && sectionRef.current) {
+                    // Smoothly scroll the section into view, respecting sticky header margin
+                    sectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, [isOpen]);
+
+            return (
+                // Added scroll-mt-32 to adjust for the sticky header when scrolling
+                <div ref={sectionRef} className="mb-6 border-b border-slate-200/60 pb-6 last:border-0 scroll-mt-32">
+                    <div 
+                        onClick={onToggle}
+                        className="flex items-center justify-between cursor-pointer group select-none py-2 hover:bg-slate-50/50 rounded-xl transition-colors px-2"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-full transition-colors ${isOpen ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'}`}>
+                                {IconComp && <IconComp className="w-6 h-6 md:w-8 md:h-8" />}
+                            </div>
+                            <div>
+                                <h3 className={`text-xl font-bold uppercase tracking-wide md:text-2xl transition-colors flex items-center gap-2 ${isOpen ? 'text-slate-800' : 'text-slate-500'}`}>
+                                    {title}
+                                    {isRequired && <span className="text-red-500 text-2xl animate-pulse">*</span>}
+                                </h3>
+                                <p className="text-xs md:text-sm font-medium text-slate-400 mt-1">
+                                    {isOpen ? 'Click to collapse section' : description}
+                                </p>
+                            </div>
+                        </div>
+                        <div className={`p-2 rounded-full transition-all duration-300 ${isOpen ? 'rotate-180 bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'}`}>
+                            <Icons.ChevronDown className="w-6 h-6" />
+                        </div>
+                    </div>
+                    
+                    {isOpen && (
+                        <div className="mt-6 animate-fade-in pl-2 md:pl-4">
+                            {children}
+                        </div>
+                    )}
+                </div>
+            );
+        };
 
         const InputGroup = ({ label, name, value, onChange, type = "text", required, options, placeholder, width = "full", id }) => (
             <div className={`mb-4 ${width === 'half' ? 'md:w-1/2' : 'w-full'} md:mb-6`}>
@@ -183,6 +232,9 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [scanProgress, setScanProgress] = useState(0);
             
+            // CHANGED: Initialize with 'personal' so Section 1 is open by default
+            const [activeSection, setActiveSection] = useState('personal');
+            
             const [formData, setFormData] = useState({
                 firstName: '', middleName: '', lastName: '', dob: '', address: '', phone: '', email: '', 
                 ssn: '', raceEthnicity: '', isHispanic: '', gender: '', language: '',
@@ -206,6 +258,11 @@
                 idFrontFile: null,
                 idBackFile: null
             });
+            
+            // Helper to toggle sections (only one open at a time)
+            const toggleSection = (sectionName) => {
+                setActiveSection(prev => prev === sectionName ? null : sectionName);
+            };
 
             const handleChange = (e) => {
                 const { name, value, type, checked, files } = e.target;
@@ -410,226 +467,305 @@
 
                             <div className="p-8 pb-16 animate-fade-in">
                                 
-                                <SectionHeader title="1. Personal Information" icon={Icons.User} />
-                                <div className="grid md:grid-cols-3 gap-6 mb-6">
-                                    <InputGroup id="firstName" label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required />
-                                    <InputGroup label="Middle" name="middleName" value={formData.middleName} onChange={handleChange} />
-                                    <InputGroup label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required />
-                                </div>
-                                <div className="grid md:grid-cols-3 gap-6 mb-6">
-                                    <InputGroup id="dob" label="Date of Birth" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
-                                    <InputGroup label="Phone Number" name="phone" type="tel" value={formData.phone} onChange={handleChange} required />
-                                    <InputGroup label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} />
-                                </div>
-                                <InputGroup id="address" label="Full Address" name="address" value={formData.address} onChange={handleChange} placeholder="Street, City, State, Zip Code" />
-                                
-                                <div className="grid md:grid-cols-4 gap-6 bg-white/60 border border-slate-200 p-6 rounded-2xl mt-8 shadow-inner">
-                                    <InputGroup label="SSN" name="ssn" value={formData.ssn} onChange={handleChange} />
-                                    <InputGroup label="Race/Ethnicity" name="raceEthnicity" value={formData.raceEthnicity} onChange={handleChange} />
-                                    <InputGroup label="Hispanic/Latino?" name="isHispanic" value={formData.isHispanic} onChange={handleChange} options={['Yes', 'No']} />
-                                    <InputGroup label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={['Male', 'Female', 'Non-Binary', 'Prefer Not to Say']} />
-                                    <InputGroup label="Primary Language" name="language" value={formData.language} onChange={handleChange} />
-                                </div>
+                                {/* CHANGED: Section 1 is now a CollapsibleSection controlled by state */}
+                                <CollapsibleSection 
+                                    title="1. Personal Information" 
+                                    icon={Icons.User}
+                                    description="Name, contact details, and demographics."
+                                    isOpen={activeSection === 'personal'}
+                                    onToggle={() => toggleSection('personal')}
+                                >
+                                    <div className="grid md:grid-cols-3 gap-6 mb-6">
+                                        <InputGroup id="firstName" label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required />
+                                        <InputGroup label="Middle" name="middleName" value={formData.middleName} onChange={handleChange} />
+                                        <InputGroup label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                                    </div>
+                                    <div className="grid md:grid-cols-3 gap-6 mb-6">
+                                        <InputGroup id="dob" label="Date of Birth" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
+                                        <InputGroup label="Phone Number" name="phone" type="tel" value={formData.phone} onChange={handleChange} required />
+                                        <InputGroup label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} />
+                                    </div>
+                                    <InputGroup id="address" label="Full Address" name="address" value={formData.address} onChange={handleChange} placeholder="Street, City, State, Zip Code" />
+                                    
+                                    <div className="grid md:grid-cols-4 gap-6 bg-white/60 border border-slate-200 p-6 rounded-2xl mt-8 shadow-inner">
+                                        <InputGroup label="SSN" name="ssn" value={formData.ssn} onChange={handleChange} />
+                                        <InputGroup label="Race/Ethnicity" name="raceEthnicity" value={formData.raceEthnicity} onChange={handleChange} />
+                                        <InputGroup label="Hispanic/Latino?" name="isHispanic" value={formData.isHispanic} onChange={handleChange} options={['Yes', 'No']} />
+                                        <InputGroup label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={['Male', 'Female', 'Non-Binary', 'Prefer Not to Say']} />
+                                        <InputGroup label="Primary Language" name="language" value={formData.language} onChange={handleChange} />
+                                    </div>
 
-                                {isUnder18 && (
-                                    <div className="bg-amber-50/90 p-8 rounded-2xl border-l-8 border-amber-400 my-10 shadow-md">
-                                        <h4 className="font-bold text-amber-900 mb-6 flex items-center gap-3 text-xl"><Icons.User className="w-6 h-6"/> Guardian Information (Required)</h4>
+                                    {isUnder18 && (
+                                        <div className="bg-amber-50/90 p-8 rounded-2xl border-l-8 border-amber-400 my-10 shadow-md">
+                                            <h4 className="font-bold text-amber-900 mb-6 flex items-center gap-3 text-xl"><Icons.User className="w-6 h-6"/> Guardian Information (Required)</h4>
+                                            <div className="grid md:grid-cols-2 gap-6">
+                                                <InputGroup label="Guardian Name" name="guardianName" value={formData.guardianName} onChange={handleChange} required />
+                                                <InputGroup label="Guardian Phone" name="guardianPhone" value={formData.guardianPhone} onChange={handleChange} required />
+                                            </div>
+                                        </div>
+                                    )}
+                                </CollapsibleSection>
+
+                                {/* SECTION 2 */}
+                                <CollapsibleSection 
+                                    title="2. History & Status" 
+                                    icon={Icons.Shield} 
+                                    description="Education, legal history, and financial background."
+                                    isOpen={activeSection === 'history'}
+                                    onToggle={() => toggleSection('history')}
+                                >
+                                    <div className="grid md:grid-cols-2 gap-6 mb-6">
+                                        <InputGroup label="Currently in School?" name="inSchool" value={formData.inSchool} onChange={handleChange} options={['Yes', 'No']} />
+                                        <InputGroup label="School Name" name="schoolName" value={formData.schoolName} onChange={handleChange} />
+                                        <InputGroup label="Graduated/GED?" name="graduated" value={formData.graduated} onChange={handleChange} options={['Yes', 'No']} />
+                                        <InputGroup label="Grad Year" name="gradYear" value={formData.gradYear} onChange={handleChange} />
+                                        <InputGroup label="Last Grade Completed" name="lastGrade" value={formData.lastGrade} onChange={handleChange} />
+                                        <InputGroup label="Attended College?" name="attendedCollege" value={formData.attendedCollege} onChange={handleChange} options={['Yes', 'No']} />
+                                    </div>
+                                    <div className="bg-slate-50/80 p-6 rounded-2xl border border-slate-200 my-8">
                                         <div className="grid md:grid-cols-2 gap-6">
-                                            <InputGroup label="Guardian Name" name="guardianName" value={formData.guardianName} onChange={handleChange} required />
-                                            <InputGroup label="Guardian Phone" name="guardianPhone" value={formData.guardianPhone} onChange={handleChange} required />
+                                            <InputGroup label="Pregnant?" name="pregnant" value={formData.pregnant} onChange={handleChange} options={['Yes', 'No', 'N/A']} />
+                                            <InputGroup label="Have Children?" name="children" value={formData.children} onChange={handleChange} options={['Yes', 'No']} />
+                                            {formData.children === 'Yes' && <InputGroup label="Children Location (Care/Relative)" name="childrenLocation" value={formData.childrenLocation} onChange={handleChange} width="full" />}
                                         </div>
                                     </div>
-                                )}
-
-                                <SectionHeader title="2. History & Status" icon={Icons.Shield} />
-                                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                                    <InputGroup label="Currently in School?" name="inSchool" value={formData.inSchool} onChange={handleChange} options={['Yes', 'No']} />
-                                    <InputGroup label="School Name" name="schoolName" value={formData.schoolName} onChange={handleChange} />
-                                    <InputGroup label="Graduated/GED?" name="graduated" value={formData.graduated} onChange={handleChange} options={['Yes', 'No']} />
-                                    <InputGroup label="Grad Year" name="gradYear" value={formData.gradYear} onChange={handleChange} />
-                                    <InputGroup label="Last Grade Completed" name="lastGrade" value={formData.lastGrade} onChange={handleChange} />
-                                    <InputGroup label="Attended College?" name="attendedCollege" value={formData.attendedCollege} onChange={handleChange} options={['Yes', 'No']} />
-                                </div>
-                                <div className="bg-slate-50/80 p-6 rounded-2xl border border-slate-200 my-8">
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        <InputGroup label="Pregnant?" name="pregnant" value={formData.pregnant} onChange={handleChange} options={['Yes', 'No', 'N/A']} />
-                                        <InputGroup label="Have Children?" name="children" value={formData.children} onChange={handleChange} options={['Yes', 'No']} />
-                                        {formData.children === 'Yes' && <InputGroup label="Children Location (Care/Relative)" name="childrenLocation" value={formData.childrenLocation} onChange={handleChange} width="full" />}
-                                    </div>
-                                </div>
-                                <div className="bg-red-50/80 p-8 rounded-2xl border border-red-100 my-8 shadow-sm">
-                                    <h4 className="font-bold text-red-900 mb-6 text-lg uppercase tracking-wide flex items-center gap-2"><Icons.Shield className="w-5 h-5"/> Legal History</h4>
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        <InputGroup label="Ever Arrested?" name="arrested" value={formData.arrested} onChange={handleChange} options={['Yes', 'No']} />
-                                        {formData.arrested === 'Yes' && (
-                                            <div>
-                                                <InputGroup label="Outcome (Probation/etc)" name="arrestOutcome" value={formData.arrestOutcome} onChange={handleChange} />
-                                                <InputGroup label="School Status at Arrest" name="schoolStatusArrest" value={formData.schoolStatusArrest} onChange={handleChange} />
-                                                <InputGroup label="Employ. Status at Arrest" name="employStatusArrest" value={formData.employStatusArrest} onChange={handleChange} />
-                                            </div>
-                                        )}
-                                        <InputGroup label="Currently on Probation?" name="probation" value={formData.probation} onChange={handleChange} options={['Yes', 'No']} />
-                                        {formData.probation === 'Yes' && <InputGroup label="Probation Release Date" name="probationReleaseDate" value={formData.probationReleaseDate} onChange={handleChange} type="date" />}
-                                    </div>
-                                </div>
-                                <div className="bg-white/60 p-8 rounded-2xl mt-8 border border-slate-200 shadow-sm">
-                                    <h4 className="font-bold text-slate-800 mb-6 text-lg">Financial Assistance</h4>
-                                    <div className="grid md:grid-cols-3 gap-6">
-                                        <InputGroup label="Voter Reg?" name="registeredVoter" value={formData.registeredVoter} onChange={handleChange} options={['Yes', 'No']} />
-                                        <InputGroup label="Need Vote Help?" name="needVoterHelp" value={formData.needVoterHelp} onChange={handleChange} options={['Yes', 'No']} />
-                                        <InputGroup label="Receive SSI/SSDI?" name="receiveSSI" value={formData.receiveSSI} onChange={handleChange} options={['Yes', 'No']} />
-                                        <InputGroup label="Receive SNAP?" name="receiveSNAP" value={formData.receiveSNAP} onChange={handleChange} options={['Yes', 'No']} />
-                                        <InputGroup label="Receive TANF?" name="receiveTANF" value={formData.receiveTANF} onChange={handleChange} options={['Yes', 'No']} />
-                                        <div className="col-span-3 grid md:grid-cols-2 gap-6 mt-4 pt-6 border-t border-slate-200">
-                                            <InputGroup label="Disability?" name="hasDisability" value={formData.hasDisability} onChange={handleChange} options={['Yes', 'No']} />
-                                            {formData.hasDisability === 'Yes' && <InputGroup label="Explain Disability" name="disabilityExplain" value={formData.disabilityExplain} onChange={handleChange} />}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <SectionHeader title="3. Construction Background" icon={Icons.HardHat} />
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <InputGroup label="Taken Construction Classes?" name="takenConstClass" value={formData.takenConstClass} onChange={handleChange} options={['Yes', 'No']} />
-                                    <InputGroup label="Any Construction Experience?" name="constExperience" value={formData.constExperience} onChange={handleChange} options={['Yes', 'No']} />
-                                    <InputGroup label="Interest in Carpentry/Construction?" name="constInterest" value={formData.constInterest} onChange={handleChange} options={['Yes', 'No']} />
-                                </div>
-                                <div className="grid md:grid-cols-2 gap-6 mt-6">
-                                    <InputGroup label="Other Trades of Interest" name="otherTrades" value={formData.otherTrades} onChange={handleChange} />
-                                    <InputGroup label="Hobbies" name="hobbies" value={formData.hobbies} onChange={handleChange} />
-                                </div>
-
-                                <SectionHeader title="4. Employment History" icon={Icons.File} />
-                                <p className="text-sm text-slate-500 mb-6 font-medium">List previous jobs (Leave blank if none)</p>
-                                {[1,2,3].map(n => (
-                                    <div key={n} className="bg-white/50 p-6 rounded-xl mb-6 border border-slate-200 hover:shadow-md transition-shadow">
-                                        <h5 className="text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider">Job {n}</h5>
-                                        <div className="grid md:grid-cols-4 gap-4">
-                                            <InputGroup label="Employer" name={`job${n}Employer`} value={formData[`job${n}Employer`]} onChange={handleChange} />
-                                            <InputGroup label="Dates" name={`job${n}Dates`} value={formData[`job${n}Dates`]} onChange={handleChange} />
-                                            <InputGroup label="Reason Left" name={`job${n}Reason`} value={formData[`job${n}Reason`]} onChange={handleChange} />
-                                            <InputGroup label="Supervisor" name={`job${n}Supervisor`} value={formData[`job${n}Supervisor`]} onChange={handleChange} />
-                                        </div>
-                                    </div>
-                                ))}
-
-                                <SectionHeader title="5. References" icon={Icons.User} />
-                                <div className="grid md:grid-cols-3 gap-6">
-                                    {[1,2,3].map(n => (
-                                        <div key={n} className="bg-white/50 p-6 rounded-xl border border-slate-200 hover:shadow-md transition-shadow">
-                                            <h5 className="text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider">Reference {n}</h5>
-                                            <InputGroup label="Name" name={`ref${n}Name`} value={formData[`ref${n}Name`]} onChange={handleChange} />
-                                            <InputGroup label="Relationship" name={`ref${n}Rel`} value={formData[`ref${n}Rel`]} onChange={handleChange} />
-                                            <InputGroup label="Phone" name={`ref${n}Phone`} value={formData[`ref${n}Phone`]} onChange={handleChange} />
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <SectionHeader title="6. Gear & Goals" icon={Icons.HardHat} />
-                                <div className="grid md:grid-cols-3 gap-6">
-                                    <InputGroup label="Shirt Size" name="shirtSize" value={formData.shirtSize} onChange={handleChange} />
-                                    <InputGroup label="Shoe Size" name="shoeSize" value={formData.shoeSize} onChange={handleChange} />
-                                    <InputGroup label="Belt Size" name="beltSize" value={formData.beltSize} onChange={handleChange} />
-                                </div>
-                                <div className="mt-6">
-                                    <label className="block text-base font-bold text-slate-700 mb-3">What would you like to receive from this program?</label>
-                                    <textarea name="programGoals" value={formData.programGoals} onChange={handleChange} className="w-full p-4 border border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm h-32 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none shadow-sm transition-all text-lg"></textarea>
-                                </div>
-
-                                <SectionHeader title="7. Emergency Contacts" icon={Icons.Shield} />
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <InputGroup label="Primary Name" name="emergencyName1" value={formData.emergencyName1} onChange={handleChange} required />
-                                    <InputGroup label="Primary Phone" name="emergencyPhone1" value={formData.emergencyPhone1} onChange={handleChange} required />
-                                    <InputGroup label="Secondary Name" name="emergencyName2" value={formData.emergencyName2} onChange={handleChange} placeholder="If none, enter 'None' or Case Worker" />
-                                    <InputGroup label="Secondary Phone" name="emergencyPhone2" value={formData.emergencyPhone2} onChange={handleChange} placeholder="If none, enter 'N/A'" />
-                                </div>
-                                <p className="text-xs text-slate-500 mt-2 italic">
-                                    * If you do not have an emergency contact, please enter "None" or provide the contact information for a case manager or social worker.
-                                </p>
-
-                                <SectionHeader title={`8. Verification Uploads ${!isUnder18 ? '(Required)' : '(Optional)'}`} icon={Icons.Upload} />
-                                
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    {/* FRONT ID UPLOAD */}
-                                    <div className="bg-blue-50/80 p-6 rounded-2xl border border-blue-200 shadow-sm text-center flex flex-col justify-center items-center hover:shadow-md transition-shadow relative overflow-hidden">
-                                        {!isUnder18 && !formData.idFrontFile && <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">REQUIRED</div>}
-                                        {formData.idFrontFile && <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">ATTACHED</div>}
-                                        <div className="bg-blue-100 p-4 rounded-full mb-4 text-blue-600"><Icons.Camera className="w-8 h-8" /></div>
-                                        <h4 className="text-lg text-blue-900 mb-2 font-bold">Front of ID</h4>
-                                        <p className="text-sm text-blue-600/80 mb-6 px-4">Upload or scan the FRONT of your ID card.</p>
-                                        <input type="file" accept="image/*" capture="environment" id="cameraInputFront" className="hidden" onChange={handleScanID} />
-                                        <button onClick={() => document.getElementById('cameraInputFront').click()} className="btn-liquid px-6 py-3 rounded-xl font-bold text-white mb-3 inline-flex items-center gap-3 w-full justify-center text-lg shadow-lg">
-                                            {formData.idFrontFile ? 'Retake Front' : 'Scan Front'} <Icons.Camera className="w-5 h-5"/>
-                                        </button>
-                                    </div>
-
-                                    {/* BACK ID UPLOAD */}
-                                    <div className="bg-blue-50/80 p-6 rounded-2xl border border-blue-200 shadow-sm text-center flex flex-col justify-center items-center hover:shadow-md transition-shadow relative overflow-hidden">
-                                        {!isUnder18 && !formData.idBackFile && <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">REQUIRED</div>}
-                                        {formData.idBackFile && <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">ATTACHED</div>}
-                                        <div className="bg-blue-100 p-4 rounded-full mb-4 text-blue-600"><Icons.Camera className="w-8 h-8" /></div>
-                                        <h4 className="text-lg text-blue-900 mb-2 font-bold">Back of ID</h4>
-                                        <p className="text-sm text-blue-600/80 mb-6 px-4">Upload or scan the BACK of your ID card.</p>
-                                        <input type="file" accept="image/*" capture="environment" id="cameraInputBack" className="hidden" name="idBackFile" onChange={handleChange} />
-                                        <button onClick={() => document.getElementById('cameraInputBack').click()} className="btn-liquid px-6 py-3 rounded-xl font-bold text-white mb-3 inline-flex items-center gap-3 w-full justify-center text-lg shadow-lg">
-                                            {formData.idBackFile ? 'Retake Back' : 'Scan Back'} <Icons.Camera className="w-5 h-5"/>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                {status && <div className="mt-4 text-center text-sm font-bold text-blue-700 bg-blue-100 px-3 py-2 rounded-xl animate-pulse">{status}</div>}
-                                {scanProgress > 0 && scanProgress < 100 && <div className="w-full bg-gray-200 rounded-full h-3 mt-4 overflow-hidden"><div className="bg-blue-600 h-3 rounded-full transition-all duration-300" style={{width: `${scanProgress}%`}}></div></div>}
-
-                                <SectionHeader title="9. Waivers & Permissions" icon={Icons.File} />
-                                <div className="space-y-8">
-                                    <LegalCheckbox label="1. Workforce Permission" name="workforcePermit" checked={formData.workforcePermit} onChange={handleChange} legalText={LegalText.Workforce} />
-                                    <LegalCheckbox label="2. Forklift Program Permission" name="forkliftPermit" checked={formData.forkliftPermit} onChange={handleChange} legalText={LegalText.Forklift} />
-                                    <LegalCheckbox label="3. Liability Waiver" name="liabilityWaiver" checked={formData.liabilityWaiver} onChange={handleChange} legalText={LegalText.Liability} />
-                                    <LegalCheckbox label="4. CRN Release (ROI)" name="roi" checked={formData.roi} onChange={handleChange} legalText={LegalText.ROI} />
-                                    
-                                    <div className="mb-10 bg-white p-6 rounded-2xl shadow-md border border-slate-100">
-                                        <h4 className="font-bold text-green-800 mb-3 text-lg">5. Media Release</h4>
-                                        <div className="legal-scroll-box no-print text-sm p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto mb-4 whitespace-pre-wrap">{LegalText.Media}</div>
-                                        <div className="flex flex-col md:flex-row gap-8 mt-6">
-                                            <label className="flex items-center gap-3 cursor-pointer p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors flex-1 border border-green-200 justify-center"><input type="radio" name="mediaRelease" value="Yes" onChange={handleChange} className="accent-green-600 w-6 h-6" /> <span className="font-bold text-green-800">Yes, I consent</span></label>
-                                            <label className="flex items-center gap-3 cursor-pointer p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex-1 border border-red-200 justify-center"><input type="radio" name="mediaRelease" value="No" onChange={handleChange} className="accent-green-600 w-6 h-6" /> <span className="font-bold text-red-800">No, I do not consent</span></label>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* CHANGED: Updated padding to p-6 on mobile and p-10 on desktop to fix spacing issues */}
-                                    <div className="bg-slate-800 text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-600 mb-6">
-                                        <h4 className="font-bold text-white mb-4 uppercase tracking-widest text-xl flex items-center gap-3"><Icons.File className="w-6 h-6"/> Digital Signature</h4>
-                                        <p className="text-sm text-slate-400 mb-8 font-medium">By typing your name below, you certify that all information is true and agree to the terms above.</p>
-                                        
-                                        {/* CHANGED: Removed Date field from this grid and adjusted columns */}
-                                        <div className={`grid ${isUnder18 ? 'md:grid-cols-2' : 'grid-cols-1'} gap-8`}>
-                                            <div>
-                                                <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Applicant Signature</label>
-                                                {/* CHANGED: Added 'block w-full min-w-0' to enforce width strictness */}
-                                                <input type="text" name="applicantSignature" value={formData.applicantSignature} onChange={handleChange} className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:ring-2 focus:ring-green-500 outline-none text-lg font-serif italic" placeholder="Type Full Name" required />
-                                            </div>
-                                            {isUnder18 && (
+                                    <div className="bg-red-50/80 p-8 rounded-2xl border border-red-100 my-8 shadow-sm">
+                                        <h4 className="font-bold text-red-900 mb-6 text-lg uppercase tracking-wide flex items-center gap-2"><Icons.Shield className="w-5 h-5"/> Legal History</h4>
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <InputGroup label="Ever Arrested?" name="arrested" value={formData.arrested} onChange={handleChange} options={['Yes', 'No']} />
+                                            {formData.arrested === 'Yes' && (
                                                 <div>
-                                                    <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Guardian Signature</label>
-                                                    {/* CHANGED: Added 'block w-full min-w-0' to enforce width strictness */}
-                                                    <input type="text" name="guardianSignature" value={formData.guardianSignature} onChange={handleChange} className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:ring-2 focus:ring-green-500 outline-none text-lg font-serif italic" placeholder="Type Full Name" required />
+                                                    <InputGroup label="Outcome (Probation/etc)" name="arrestOutcome" value={formData.arrestOutcome} onChange={handleChange} />
+                                                    <InputGroup label="School Status at Arrest" name="schoolStatusArrest" value={formData.schoolStatusArrest} onChange={handleChange} />
+                                                    <InputGroup label="Employ. Status at Arrest" name="employStatusArrest" value={formData.employStatusArrest} onChange={handleChange} />
                                                 </div>
                                             )}
+                                            <InputGroup label="Currently on Probation?" name="probation" value={formData.probation} onChange={handleChange} options={['Yes', 'No']} />
+                                            {formData.probation === 'Yes' && <InputGroup label="Probation Release Date" name="probationReleaseDate" value={formData.probationReleaseDate} onChange={handleChange} type="date" />}
                                         </div>
                                     </div>
-
-                                    {/* CHANGED: Removed outer box, centered label and input, added text-center to input */}
-                                    <div className="mt-6 flex flex-col items-center">
-                                        <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-center">Date Signed</label>
-                                        <input 
-                                            type="date" 
-                                            name="signDate" 
-                                            value={formData.signDate} 
-                                            onChange={handleChange} 
-                                            className="block w-full max-w-xs p-4 h-16 rounded-xl bg-white border border-slate-300 text-slate-800 focus:ring-2 focus:ring-green-500 outline-none text-lg font-bold text-center shadow-sm" 
-                                            required 
-                                        />
+                                    <div className="bg-white/60 p-8 rounded-2xl mt-8 border border-slate-200 shadow-sm">
+                                        <h4 className="font-bold text-slate-800 mb-6 text-lg">Financial Assistance</h4>
+                                        {/* CHANGED: Removed grid classes to stack items vertically (single column) */}
+                                        <div>
+                                            <InputGroup label="Voter Reg?" name="registeredVoter" value={formData.registeredVoter} onChange={handleChange} options={['Yes', 'No']} />
+                                            <InputGroup label="Need Vote Help?" name="needVoterHelp" value={formData.needVoterHelp} onChange={handleChange} options={['Yes', 'No']} />
+                                            <InputGroup label="Receive SSI/SSDI?" name="receiveSSI" value={formData.receiveSSI} onChange={handleChange} options={['Yes', 'No']} />
+                                            <InputGroup label="Receive SNAP?" name="receiveSNAP" value={formData.receiveSNAP} onChange={handleChange} options={['Yes', 'No']} />
+                                            <InputGroup label="Receive TANF?" name="receiveTANF" value={formData.receiveTANF} onChange={handleChange} options={['Yes', 'No']} />
+                                            
+                                            {/* CHANGED: Adjusted container for vertical layout, removed col-span-3 and internal grid */}
+                                            <div className="mt-4 pt-6 border-t border-slate-200">
+                                                <InputGroup label="Disability?" name="hasDisability" value={formData.hasDisability} onChange={handleChange} options={['Yes', 'No']} />
+                                                {formData.hasDisability === 'Yes' && <InputGroup label="Explain Disability" name="disabilityExplain" value={formData.disabilityExplain} onChange={handleChange} />}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                </CollapsibleSection>
+
+                                {/* SECTION 3 */}
+                                <CollapsibleSection 
+                                    title="3. Construction Background" 
+                                    icon={Icons.HardHat}
+                                    description="Previous construction classes, experience, and trade interests."
+                                    isOpen={activeSection === 'construction'}
+                                    onToggle={() => toggleSection('construction')}
+                                >
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <InputGroup label="Taken Construction Classes?" name="takenConstClass" value={formData.takenConstClass} onChange={handleChange} options={['Yes', 'No']} />
+                                        <InputGroup label="Any Construction Experience?" name="constExperience" value={formData.constExperience} onChange={handleChange} options={['Yes', 'No']} />
+                                        <InputGroup label="Interest in Carpentry/Construction?" name="constInterest" value={formData.constInterest} onChange={handleChange} options={['Yes', 'No']} />
+                                    </div>
+                                    <div className="grid md:grid-cols-2 gap-6 mt-6">
+                                        <InputGroup label="Other Trades of Interest" name="otherTrades" value={formData.otherTrades} onChange={handleChange} />
+                                        <InputGroup label="Hobbies" name="hobbies" value={formData.hobbies} onChange={handleChange} />
+                                    </div>
+                                </CollapsibleSection>
+
+                                {/* SECTION 4 */}
+                                <CollapsibleSection 
+                                    title="4. Employment History" 
+                                    icon={Icons.File}
+                                    description="Details of up to 3 previous jobs."
+                                    isOpen={activeSection === 'employment'}
+                                    onToggle={() => toggleSection('employment')}
+                                >
+                                    <p className="text-sm text-slate-500 mb-6 font-medium">List previous jobs (Leave blank if none)</p>
+                                    {[1,2,3].map(n => (
+                                        <div key={n} className="bg-white/50 p-6 rounded-xl mb-6 border border-slate-200 hover:shadow-md transition-shadow">
+                                            <h5 className="text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider">Job {n}</h5>
+                                            <div className="grid md:grid-cols-4 gap-4">
+                                                <InputGroup label="Employer" name={`job${n}Employer`} value={formData[`job${n}Employer`]} onChange={handleChange} />
+                                                <InputGroup label="Dates" name={`job${n}Dates`} value={formData[`job${n}Dates`]} onChange={handleChange} />
+                                                <InputGroup label="Reason Left" name={`job${n}Reason`} value={formData[`job${n}Reason`]} onChange={handleChange} />
+                                                <InputGroup label="Supervisor" name={`job${n}Supervisor`} value={formData[`job${n}Supervisor`]} onChange={handleChange} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </CollapsibleSection>
+
+                                {/* SECTION 5 */}
+                                <CollapsibleSection 
+                                    title="5. References" 
+                                    icon={Icons.User}
+                                    description="Three personal or professional references."
+                                    isOpen={activeSection === 'references'}
+                                    onToggle={() => toggleSection('references')}
+                                >
+                                    <div className="grid md:grid-cols-3 gap-6">
+                                        {[1,2,3].map(n => (
+                                            <div key={n} className="bg-white/50 p-6 rounded-xl border border-slate-200 hover:shadow-md transition-shadow">
+                                                <h5 className="text-sm font-bold text-slate-400 uppercase mb-4 tracking-wider">Reference {n}</h5>
+                                                <InputGroup label="Name" name={`ref${n}Name`} value={formData[`ref${n}Name`]} onChange={handleChange} />
+                                                <InputGroup label="Relationship" name={`ref${n}Rel`} value={formData[`ref${n}Rel`]} onChange={handleChange} />
+                                                <InputGroup label="Phone" name={`ref${n}Phone`} value={formData[`ref${n}Phone`]} onChange={handleChange} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CollapsibleSection>
+
+                                {/* SECTION 6 */}
+                                <CollapsibleSection 
+                                    title="6. Gear & Goals" 
+                                    icon={Icons.HardHat}
+                                    description="Boot/Shirt sizes and program expectations."
+                                    isOpen={activeSection === 'gear'}
+                                    onToggle={() => toggleSection('gear')}
+                                >
+                                    <div className="grid md:grid-cols-3 gap-6">
+                                        <InputGroup label="Shirt Size" name="shirtSize" value={formData.shirtSize} onChange={handleChange} />
+                                        <InputGroup label="Shoe Size" name="shoeSize" value={formData.shoeSize} onChange={handleChange} />
+                                        <InputGroup label="Belt Size" name="beltSize" value={formData.beltSize} onChange={handleChange} />
+                                    </div>
+                                    <div className="mt-6">
+                                        <label className="block text-base font-bold text-slate-700 mb-3">What would you like to receive from this program?</label>
+                                        <textarea name="programGoals" value={formData.programGoals} onChange={handleChange} className="w-full p-4 border border-slate-300 rounded-xl bg-white/80 backdrop-blur-sm h-32 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none shadow-sm transition-all text-lg"></textarea>
+                                    </div>
+                                </CollapsibleSection>
+
+                                {/* SECTION 7 - REQUIRED */}
+                                <CollapsibleSection 
+                                    title="7. Emergency Contacts" 
+                                    icon={Icons.Shield}
+                                    isRequired={true}
+                                    description="Primary and secondary contact info for emergencies."
+                                    isOpen={activeSection === 'emergency'}
+                                    onToggle={() => toggleSection('emergency')}
+                                >
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <InputGroup label="Primary Name" name="emergencyName1" value={formData.emergencyName1} onChange={handleChange} required />
+                                        <InputGroup label="Primary Phone" name="emergencyPhone1" value={formData.emergencyPhone1} onChange={handleChange} required />
+                                        <InputGroup label="Secondary Name" name="emergencyName2" value={formData.emergencyName2} onChange={handleChange} placeholder="If none, enter 'None' or Case Worker" />
+                                        <InputGroup label="Secondary Phone" name="emergencyPhone2" value={formData.emergencyPhone2} onChange={handleChange} placeholder="If none, enter 'N/A'" />
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-2 italic">
+                                        * If you do not have an emergency contact, please enter "None" or provide the contact information for a case manager or social worker.
+                                    </p>
+                                </CollapsibleSection>
+
+                                {/* SECTION 8 - REQUIRED (Conditional) */}
+                                <CollapsibleSection 
+                                    title={`8. Verification Uploads`} 
+                                    icon={Icons.Upload}
+                                    isRequired={!isUnder18}
+                                    description={!isUnder18 ? "Scan or upload your ID (Front & Back)." : "Optional for applicants under 18."}
+                                    isOpen={activeSection === 'uploads'}
+                                    onToggle={() => toggleSection('uploads')}
+                                >
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        {/* FRONT ID UPLOAD */}
+                                        <div className="bg-blue-50/80 p-6 rounded-2xl border border-blue-200 shadow-sm text-center flex flex-col justify-center items-center hover:shadow-md transition-shadow relative overflow-hidden">
+                                            {!isUnder18 && !formData.idFrontFile && <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">REQUIRED</div>}
+                                            {formData.idFrontFile && <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">ATTACHED</div>}
+                                            <div className="bg-blue-100 p-4 rounded-full mb-4 text-blue-600"><Icons.Camera className="w-8 h-8" /></div>
+                                            <h4 className="text-lg text-blue-900 mb-2 font-bold">Front of ID</h4>
+                                            <p className="text-sm text-blue-600/80 mb-6 px-4">Upload or scan the FRONT of your ID card.</p>
+                                            <input type="file" accept="image/*" capture="environment" id="cameraInputFront" className="hidden" onChange={handleScanID} />
+                                            <button onClick={() => document.getElementById('cameraInputFront').click()} className="btn-liquid px-6 py-3 rounded-xl font-bold text-white mb-3 inline-flex items-center gap-3 w-full justify-center text-lg shadow-lg">
+                                                {formData.idFrontFile ? 'Retake Front' : 'Scan Front'} <Icons.Camera className="w-5 h-5"/>
+                                            </button>
+                                        </div>
+
+                                        {/* BACK ID UPLOAD */}
+                                        <div className="bg-blue-50/80 p-6 rounded-2xl border border-blue-200 shadow-sm text-center flex flex-col justify-center items-center hover:shadow-md transition-shadow relative overflow-hidden">
+                                            {!isUnder18 && !formData.idBackFile && <div className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">REQUIRED</div>}
+                                            {formData.idBackFile && <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">ATTACHED</div>}
+                                            <div className="bg-blue-100 p-4 rounded-full mb-4 text-blue-600"><Icons.Camera className="w-8 h-8" /></div>
+                                            <h4 className="text-lg text-blue-900 mb-2 font-bold">Back of ID</h4>
+                                            <p className="text-sm text-blue-600/80 mb-6 px-4">Upload or scan the BACK of your ID card.</p>
+                                            <input type="file" accept="image/*" capture="environment" id="cameraInputBack" className="hidden" name="idBackFile" onChange={handleChange} />
+                                            <button onClick={() => document.getElementById('cameraInputBack').click()} className="btn-liquid px-6 py-3 rounded-xl font-bold text-white mb-3 inline-flex items-center gap-3 w-full justify-center text-lg shadow-lg">
+                                                {formData.idBackFile ? 'Retake Back' : 'Scan Back'} <Icons.Camera className="w-5 h-5"/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {status && <div className="mt-4 text-center text-sm font-bold text-blue-700 bg-blue-100 px-3 py-2 rounded-xl animate-pulse">{status}</div>}
+                                    {scanProgress > 0 && scanProgress < 100 && <div className="w-full bg-gray-200 rounded-full h-3 mt-4 overflow-hidden"><div className="bg-blue-600 h-3 rounded-full transition-all duration-300" style={{width: `${scanProgress}%`}}></div></div>}
+                                </CollapsibleSection>
+
+                                {/* SECTION 9 - REQUIRED */}
+                                <CollapsibleSection 
+                                    title="9. Waivers & Permissions" 
+                                    icon={Icons.File}
+                                    isRequired={true}
+                                    description="Review, consent, and sign digitally."
+                                    isOpen={activeSection === 'waivers'}
+                                    onToggle={() => toggleSection('waivers')}
+                                >
+                                    <div className="space-y-8">
+                                        <LegalCheckbox label="1. Workforce Permission" name="workforcePermit" checked={formData.workforcePermit} onChange={handleChange} legalText={LegalText.Workforce} />
+                                        <LegalCheckbox label="2. Forklift Program Permission" name="forkliftPermit" checked={formData.forkliftPermit} onChange={handleChange} legalText={LegalText.Forklift} />
+                                        <LegalCheckbox label="3. Liability Waiver" name="liabilityWaiver" checked={formData.liabilityWaiver} onChange={handleChange} legalText={LegalText.Liability} />
+                                        <LegalCheckbox label="4. CRN Release (ROI)" name="roi" checked={formData.roi} onChange={handleChange} legalText={LegalText.ROI} />
+                                        
+                                        <div className="mb-10 bg-white p-6 rounded-2xl shadow-md border border-slate-100">
+                                            <h4 className="font-bold text-green-800 mb-3 text-lg">5. Media Release</h4>
+                                            <div className="legal-scroll-box no-print text-sm p-4 bg-gray-50 rounded-lg border border-gray-200 max-h-40 overflow-y-auto mb-4 whitespace-pre-wrap">{LegalText.Media}</div>
+                                            <div className="flex flex-col md:flex-row gap-8 mt-6">
+                                                <label className="flex items-center gap-3 cursor-pointer p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors flex-1 border border-green-200 justify-center"><input type="radio" name="mediaRelease" value="Yes" onChange={handleChange} className="accent-green-600 w-6 h-6" /> <span className="font-bold text-green-800">Yes, I consent</span></label>
+                                                <label className="flex items-center gap-3 cursor-pointer p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex-1 border border-red-200 justify-center"><input type="radio" name="mediaRelease" value="No" onChange={handleChange} className="accent-green-600 w-6 h-6" /> <span className="font-bold text-red-800">No, I do not consent</span></label>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* CHANGED: Updated padding to p-6 on mobile and p-10 on desktop to fix spacing issues */}
+                                        <div className="bg-slate-800 text-white p-6 md:p-10 rounded-3xl shadow-2xl border border-slate-600 mb-6">
+                                            <h4 className="font-bold text-white mb-4 uppercase tracking-widest text-xl flex items-center gap-3"><Icons.File className="w-6 h-6"/> Digital Signature</h4>
+                                            <p className="text-sm text-slate-400 mb-8 font-medium">By typing your name below, you certify that all information is true and agree to the terms above.</p>
+                                            
+                                            {/* CHANGED: Removed Date field from this grid and adjusted columns */}
+                                            <div className={`grid ${isUnder18 ? 'md:grid-cols-2' : 'grid-cols-1'} gap-8`}>
+                                                <div>
+                                                    <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Applicant Signature</label>
+                                                    {/* CHANGED: Added 'block w-full min-w-0' to enforce width strictness */}
+                                                    <input type="text" name="applicantSignature" value={formData.applicantSignature} onChange={handleChange} className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:ring-2 focus:ring-green-500 outline-none text-lg font-serif italic" placeholder="Type Full Name" required />
+                                                </div>
+                                                {isUnder18 && (
+                                                    <div>
+                                                        <label className="block text-xs text-slate-400 mb-2 uppercase tracking-wider font-bold">Guardian Signature</label>
+                                                        {/* CHANGED: Added 'block w-full min-w-0' to enforce width strictness */}
+                                                        <input type="text" name="guardianSignature" value={formData.guardianSignature} onChange={handleChange} className="block w-full min-w-0 p-4 h-16 rounded-xl bg-slate-700 border border-slate-600 text-white placeholder-slate-500 focus:ring-2 focus:ring-green-500 outline-none text-lg font-serif italic" placeholder="Type Full Name" required />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* CHANGED: Removed outer box, centered label and input, added text-center to input */}
+                                        <div className="mt-6 flex flex-col items-center">
+                                            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wider text-center">Date Signed</label>
+                                            <input 
+                                                type="date" 
+                                                name="signDate" 
+                                                value={formData.signDate} 
+                                                onChange={handleChange} 
+                                                className="block w-full max-w-xs p-4 h-16 rounded-xl bg-white border border-slate-300 text-slate-800 focus:ring-2 focus:ring-green-500 outline-none text-lg font-bold text-center shadow-sm" 
+                                                required 
+                                            />
+                                        </div>
+                                    </div>
+                                </CollapsibleSection>
+                                
+                                {/* END OF SECTIONS */}
 
                                 <div className="flex flex-col md:flex-row gap-4 justify-between mt-16 pt-8 border-t border-slate-200 pb-12">
                                     {/* CHANGED: Added ArrowLeft icon to button with flex layout */}
